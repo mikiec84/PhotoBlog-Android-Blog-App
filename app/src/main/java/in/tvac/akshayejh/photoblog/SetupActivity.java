@@ -3,6 +3,7 @@ package in.tvac.akshayejh.photoblog;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -31,11 +32,15 @@ import com.google.firebase.storage.UploadTask;
 import com.theartofdev.edmodo.cropper.CropImage;
 import com.theartofdev.edmodo.cropper.CropImageView;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import id.zelory.compressor.Compressor;
 
 
 public class SetupActivity extends AppCompatActivity {
@@ -54,6 +59,8 @@ public class SetupActivity extends AppCompatActivity {
     private StorageReference storageReference;
     private FirebaseAuth firebaseAuth;
     private FirebaseFirestore firebaseFirestore;
+
+    private Bitmap compressedImageFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,13 +137,30 @@ public class SetupActivity extends AppCompatActivity {
 
                         user_id = firebaseAuth.getCurrentUser().getUid();
 
-                        StorageReference image_path = storageReference.child("profile_images").child(user_id + ".jpg");
-                        image_path.putFile(mainImageURI).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                        File newImageFile = new File(mainImageURI.getPath());
+                        try {
+
+                            compressedImageFile = new Compressor(SetupActivity.this)
+                                    .setMaxHeight(125)
+                                    .setMaxWidth(125)
+                                    .setQuality(50)
+                                    .compressToBitmap(newImageFile);
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        compressedImageFile.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                        byte[] thumbData = baos.toByteArray();
+
+                        UploadTask image_path = storageReference.child("profile_images").child(user_id + ".jpg").putBytes(thumbData);
+
+                        image_path.addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                             @Override
                             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
 
                                 if (task.isSuccessful()) {
-
                                     storeFirestore(task, user_name);
 
                                 } else {

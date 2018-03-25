@@ -1,14 +1,20 @@
 package in.tvac.akshayejh.photoblog;
 
 
+import android.content.Context;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.Display;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.PopupWindow;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -39,6 +45,7 @@ public class HomeFragment extends Fragment {
     private BlogRecyclerAdapter blogRecyclerAdapter;
 
     private DocumentSnapshot lastVisible;
+    private Boolean isFirstPageFirstLoad = true;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -59,6 +66,7 @@ public class HomeFragment extends Fragment {
         blogRecyclerAdapter = new BlogRecyclerAdapter(blog_list);
         blog_list_view.setLayoutManager(new LinearLayoutManager(container.getContext()));
         blog_list_view.setAdapter(blogRecyclerAdapter);
+        blog_list_view.setHasFixedSize(true);
 
         if(firebaseAuth.getCurrentUser() != null) {
 
@@ -73,9 +81,6 @@ public class HomeFragment extends Fragment {
 
                     if(reachedBottom){
 
-                        String desc = lastVisible.getString("desc");
-                        Toast.makeText(container.getContext(), "Reached : " + desc, Toast.LENGTH_SHORT).show();
-
                         loadMorePost();
 
                     }
@@ -84,24 +89,48 @@ public class HomeFragment extends Fragment {
             });
 
             Query firstQuery = firebaseFirestore.collection("Posts").orderBy("timestamp", Query.Direction.DESCENDING).limit(3);
-            firstQuery.addSnapshotListener(new EventListener<QuerySnapshot>() {
+            firstQuery.addSnapshotListener(getActivity(), new EventListener<QuerySnapshot>() {
                 @Override
                 public void onEvent(QuerySnapshot documentSnapshots, FirebaseFirestoreException e) {
 
-                    lastVisible = documentSnapshots.getDocuments().get(documentSnapshots.size() -1);
+                    if (!documentSnapshots.isEmpty()) {
 
-                    for (DocumentChange doc : documentSnapshots.getDocumentChanges()) {
-                        if (doc.getType() == DocumentChange.Type.ADDED) {
+                        if (isFirstPageFirstLoad) {
 
-                            BlogPost blogPost = doc.getDocument().toObject(BlogPost.class);
-                            blog_list.add(blogPost);
-
-                            blogRecyclerAdapter.notifyDataSetChanged();
+                            lastVisible = documentSnapshots.getDocuments().get(documentSnapshots.size() - 1);
+                            blog_list.clear();
 
                         }
+
+                        for (DocumentChange doc : documentSnapshots.getDocumentChanges()) {
+
+                            if (doc.getType() == DocumentChange.Type.ADDED) {
+
+                                String blogPostId = doc.getDocument().getId();
+                                BlogPost blogPost = doc.getDocument().toObject(BlogPost.class).withId(blogPostId);
+
+                                if (isFirstPageFirstLoad) {
+
+                                    blog_list.add(blogPost);
+
+                                } else {
+
+                                    blog_list.add(0, blogPost);
+
+                                }
+
+
+                                blogRecyclerAdapter.notifyDataSetChanged();
+
+                            }
+                        }
+
+                        isFirstPageFirstLoad = false;
+
                     }
 
                 }
+
             });
 
         }
@@ -112,33 +141,38 @@ public class HomeFragment extends Fragment {
 
     public void loadMorePost(){
 
-        Query nextQuery = firebaseFirestore.collection("Posts")
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .startAfter(lastVisible)
-                .limit(3);
+        if(firebaseAuth.getCurrentUser() != null) {
 
-        nextQuery.addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(QuerySnapshot documentSnapshots, FirebaseFirestoreException e) {
+            Query nextQuery = firebaseFirestore.collection("Posts")
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .startAfter(lastVisible)
+                    .limit(3);
 
-                if(!documentSnapshots.isEmpty()) {
+            nextQuery.addSnapshotListener(getActivity(), new EventListener<QuerySnapshot>() {
+                @Override
+                public void onEvent(QuerySnapshot documentSnapshots, FirebaseFirestoreException e) {
 
-                    lastVisible = documentSnapshots.getDocuments().get(documentSnapshots.size() - 1);
-                    for (DocumentChange doc : documentSnapshots.getDocumentChanges()) {
-                        if (doc.getType() == DocumentChange.Type.ADDED) {
+                    if (!documentSnapshots.isEmpty()) {
 
-                            BlogPost blogPost = doc.getDocument().toObject(BlogPost.class);
-                            blog_list.add(blogPost);
+                        lastVisible = documentSnapshots.getDocuments().get(documentSnapshots.size() - 1);
+                        for (DocumentChange doc : documentSnapshots.getDocumentChanges()) {
 
-                            blogRecyclerAdapter.notifyDataSetChanged();
+                            if (doc.getType() == DocumentChange.Type.ADDED) {
+
+                                String blogPostId = doc.getDocument().getId();
+                                BlogPost blogPost = doc.getDocument().toObject(BlogPost.class).withId(blogPostId);
+                                blog_list.add(blogPost);
+
+                                blogRecyclerAdapter.notifyDataSetChanged();
+                            }
 
                         }
                     }
 
                 }
+            });
 
-            }
-        });
+        }
 
     }
 

@@ -1,17 +1,23 @@
 package in.tvac.akshayejh.photoblog;
 
 
-public class BlogPost {
+import com.google.firebase.firestore.ServerTimestamp;
+
+import java.util.Date;
+
+public class BlogPost extends BlogPostId {
 
     public String user_id, image_url, desc, image_thumb;
+    public Date timestamp;
 
     public BlogPost() {}
 
-    public BlogPost(String user_id, String image_url, String desc, String image_thumb) {
+    public BlogPost(String user_id, String image_url, String desc, String image_thumb, Date timestamp) {
         this.user_id = user_id;
         this.image_url = image_url;
         this.desc = desc;
         this.image_thumb = image_thumb;
+        this.timestamp = timestamp;
     }
 
     public String getUser_id() {
@@ -46,7 +52,13 @@ public class BlogPost {
         this.image_thumb = image_thumb;
     }
 
+    public Date getTimestamp() {
+        return timestamp;
+    }
 
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
 
 
 }

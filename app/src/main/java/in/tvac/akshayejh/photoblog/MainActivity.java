@@ -1,6 +1,7 @@
 package in.tvac.akshayejh.photoblog;
 
 import android.content.Intent;
+import android.nfc.Tag;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.FloatingActionButton;
@@ -50,51 +51,62 @@ public class MainActivity extends AppCompatActivity {
 
         getSupportActionBar().setTitle("Photo Blog");
 
-        mainbottomNav = findViewById(R.id.mainBottomNav);
+        if(mAuth.getCurrentUser() != null) {
 
-        // FRAGMENTS
-        homeFragment = new HomeFragment();
-        notificationFragment = new NotificationFragment();
-        accountFragment = new AccountFragment();
+            mainbottomNav = findViewById(R.id.mainBottomNav);
 
+            // FRAGMENTS
+            homeFragment = new HomeFragment();
+            notificationFragment = new NotificationFragment();
+            accountFragment = new AccountFragment();
 
-        mainbottomNav.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+            initializeFragment();
 
-                switch (item.getItemId()){
+            mainbottomNav.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+                @Override
+                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
-                    case R.id.bottom_action_home :
-                        replaceFragment(homeFragment);
-                        return true;
+                    Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_container);
 
-                    case R.id.bottom_action_account:
-                        replaceFragment(accountFragment);
-                        return true;
+                    switch (item.getItemId()) {
 
-                    case R.id.bottom_action_notif:
-                        replaceFragment(notificationFragment);
-                        return true;
+                        case R.id.bottom_action_home:
+
+                            replaceFragment(homeFragment, currentFragment);
+                            return true;
+
+                        case R.id.bottom_action_account:
+
+                            replaceFragment(accountFragment, currentFragment);
+                            return true;
+
+                        case R.id.bottom_action_notif:
+
+                            replaceFragment(notificationFragment, currentFragment);
+                            return true;
 
                         default:
                             return false;
 
 
+                    }
+
                 }
-            }
-        });
+            });
 
 
-        addPostBtn = findViewById(R.id.add_post_btn);
-        addPostBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+            addPostBtn = findViewById(R.id.add_post_btn);
+            addPostBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
-                Intent newPostIntent = new Intent(MainActivity.this, NewPostActivity.class);
-                startActivity(newPostIntent);
+                    Intent newPostIntent = new Intent(MainActivity.this, NewPostActivity.class);
+                    startActivity(newPostIntent);
 
-            }
-        });
+                }
+            });
+
+        }
 
 
     }
@@ -190,10 +202,47 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void replaceFragment(Fragment fragment){
+    private void initializeFragment(){
 
         FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.replace(R.id.main_container, fragment);
+
+        fragmentTransaction.add(R.id.main_container, homeFragment);
+        fragmentTransaction.add(R.id.main_container, notificationFragment);
+        fragmentTransaction.add(R.id.main_container, accountFragment);
+
+        fragmentTransaction.hide(notificationFragment);
+        fragmentTransaction.hide(accountFragment);
+
+        fragmentTransaction.commit();
+
+    }
+
+    private void replaceFragment(Fragment fragment, Fragment currentFragment){
+
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        if(fragment == homeFragment){
+
+            fragmentTransaction.hide(accountFragment);
+            fragmentTransaction.hide(notificationFragment);
+
+        }
+
+        if(fragment == accountFragment){
+
+            fragmentTransaction.hide(homeFragment);
+            fragmentTransaction.hide(notificationFragment);
+
+        }
+
+        if(fragment == notificationFragment){
+
+            fragmentTransaction.hide(homeFragment);
+            fragmentTransaction.hide(accountFragment);
+
+        }
+        fragmentTransaction.show(fragment);
+
+        //fragmentTransaction.replace(R.id.main_container, fragment);
         fragmentTransaction.commit();
 
     }

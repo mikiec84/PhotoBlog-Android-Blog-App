@@ -106,8 +106,28 @@ public class NewPostActivity extends AppCompatActivity {
 
                     final String randomName = UUID.randomUUID().toString();
 
-                    StorageReference filePath = storageReference.child("post_images").child(randomName + ".jpg");
-                    filePath.putFile(postImageUri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                    // PHOTO UPLOAD
+                    File newImageFile = new File(postImageUri.getPath());
+                    try {
+
+                        compressedImageFile = new Compressor(NewPostActivity.this)
+                                .setMaxHeight(720)
+                                .setMaxWidth(720)
+                                .setQuality(50)
+                                .compressToBitmap(newImageFile);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    compressedImageFile.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                    byte[] imageData = baos.toByteArray();
+
+                    // PHOTO UPLOAD
+
+                    UploadTask filePath = storageReference.child("post_images").child(randomName + ".jpg").putBytes(imageData);
+                    filePath.addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onComplete(@NonNull final Task<UploadTask.TaskSnapshot> task) {
 
@@ -115,14 +135,14 @@ public class NewPostActivity extends AppCompatActivity {
 
                             if(task.isSuccessful()){
 
-                                File newImageFile = new File(postImageUri.getPath());
+                                File newThumbFile = new File(postImageUri.getPath());
                                 try {
 
                                     compressedImageFile = new Compressor(NewPostActivity.this)
                                             .setMaxHeight(100)
                                             .setMaxWidth(100)
-                                            .setQuality(2)
-                                            .compressToBitmap(newImageFile);
+                                            .setQuality(1)
+                                            .compressToBitmap(newThumbFile);
 
                                 } catch (IOException e) {
                                     e.printStackTrace();
